@@ -1,0 +1,25 @@
+# Local Environment Secret Files (Crucial for SaaS Security)
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+.env.*
+!.env.example
+
+# Dependency Directories (Keeps repository fast and lightweight)
+node_modules/
+jspm_packages/
+.npm
+.eslintcache
+
+# Production Build Artifacts 
+dist/
+build/
+.next/
+.nuxt/
+out/
+
+# Operating System System Files
+.DS_Store
+Thumbs.db
