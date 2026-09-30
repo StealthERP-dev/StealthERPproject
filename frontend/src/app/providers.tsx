@@ -1,7 +1,7 @@
 "use client";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { AuthProvider } from "@/features/auth/auth-provider";
 
 // AuthProvider is mounted here (D-21), inside QueryClientProvider so a later
@@ -23,6 +23,14 @@ export function Providers({ children }: { children: ReactNode }) {
         },
       }),
   );
+
+  // Android Chrome only offers "Install app" when a service worker with a
+  // fetch handler controls the page (public/sw.js is a no-cache pass-through).
+  useEffect(() => {
+    if (process.env.NODE_ENV === "production" && "serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").catch(() => undefined);
+    }
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
