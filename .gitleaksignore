@@ -1,0 +1,3 @@
+# Supabase anon key, committed in frontend/.env (since deleted) in history.
+# Public by design: it ships in every client bundle and is gated by RLS.
+4639a90621c629fed1cb1c16a6432c85bf640663:frontend/.env:generic-api-key:9
