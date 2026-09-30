@@ -287,10 +287,12 @@ select is(
   'customer_retention reports is_repeat = true for the customer with two orders'
 );
 
--- Supporting view: offer_activity (doc §10)
+-- Supporting view: offer_activity (doc §10). The view buckets by
+-- created_at::date (session-timezone date), so compare against current_date,
+-- not today_ist(): between 18:30-24:00 UTC the IST date is already tomorrow.
 select is(
   (select offers_created::int from private.offer_activity
-    where store_id = '80000000-0000-4000-8000-000000000001' and activity_date = public.today_ist()),
+    where store_id = '80000000-0000-4000-8000-000000000001' and activity_date = current_date),
   1,
   'offer_activity counts the one seeded offer for store A today'
 );
