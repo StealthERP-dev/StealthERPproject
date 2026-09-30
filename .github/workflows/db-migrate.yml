@@ -1,0 +1,56 @@
+name: DB Migrate
+
+# Manual only: Actions tab → "DB Migrate" → Run workflow.
+# Applies frontend/supabase/migrations/* to the chosen hosted Supabase project.
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target GitHub Environment (holds that project's secrets)
+        type: choice
+        options: [staging, production]
+        default: staging
+      dry_run:
+        description: Only list pending migrations, apply nothing
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+# One migration run at a time per target; never cancel one mid-flight.
+concurrency:
+  group: db-migrate-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    name: ${{ inputs.dry_run && 'Dry run' || 'Push' }} → ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    defaults:
+      run:
+        working-directory: frontend
+    env:
+      # Environment-scoped secrets (Settings → Environments → <env>):
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: frontend/.nvmrc
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - name: Link project
+        run: npx supabase link --project-ref "$SUPABASE_PROJECT_REF"
+      - name: Migration status (local vs remote)
+        run: npx supabase migration list
+      - name: Dry run
+        if: ${{ inputs.dry_run }}
+        run: npx supabase db push --dry-run
+      - name: Push migrations
+        if: ${{ !inputs.dry_run }}
+        run: npx supabase db push --yes

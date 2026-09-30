@@ -1,40 +1,76 @@
 {
-  "name": "stealth-erp-frontend",
-  "version": "0.1.0",
+  "name": "store-app",
+  "version": "0.1.0-beta",
   "private": true,
+  "engines": {
+    "node": "24.x"
+  },
   "scripts": {
     "dev": "next dev",
+    "dev:local": "supabase start && npm run env:local && next dev",
+    "dev:staging": "set -a && . ./.env.staging && set +a && next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "prepare": "cd .. && husky install frontend/.husky"
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --max-warnings=0",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "db:start": "supabase start",
+    "db:reset": "supabase db reset",
+    "db:types": "supabase gen types typescript --local --schema public > src/lib/supabase/database.types.ts",
+    "db:types:check": "supabase gen types typescript --local --schema public | diff -u src/lib/supabase/database.types.ts -",
+    "db:push:staging": ". ./.env.staging && ref=${NEXT_PUBLIC_SUPABASE_URL#https://} && supabase link --project-ref \"${ref%%.*}\" && supabase db push",
+    "env:local": "supabase status -o env --override-name api.url=NEXT_PUBLIC_SUPABASE_URL --override-name auth.anon_key=NEXT_PUBLIC_SUPABASE_ANON_KEY | grep '^NEXT_PUBLIC_' > .env.local",
+    "test:db": "supabase test db",
+    "test:db:http": "node --test tests/db/*.test.mjs",
+    "test:unit": "node --import ./tests/zod-resolve.mjs --test tests/unit/*.test.mjs",
+    "smoke": "node scripts/smoke-dom.mjs",
+    "db:advisors:check": "node scripts/check-advisors.mjs",
+    "prepare": "cd .. && husky install frontend/.husky",
+    "check:secrets": "node scripts/check-bundle-secrets.mjs --dir .next/static",
+    "check:secrets:self-test": "node scripts/check-bundle-secrets.mjs --self-test",
+    "check:gitleaks": "docker run --rm -v \"$PWD:/repo\" ghcr.io/gitleaks/gitleaks:v8.30.1 git /repo --redact --no-banner",
+    "icons:generate": "node scripts/generate-app-icons.mjs",
+    "check:icons": "node scripts/generate-app-icons.mjs --check",
+    "check:manifest": "node scripts/check-manifest.mjs",
+    "check:manifest:self-test": "node scripts/check-manifest.mjs --self-test",
+    "verify": "npm run typecheck && npm run lint && npm run format:check && npm run build && npm run check:secrets && npm run test:unit && npm run check:icons && npm run check:manifest:self-test",
+    "verify:db": "supabase db reset && npm run db:types:check && npm run db:advisors:check && supabase test db && npm run test:db:http",
+    "smoke:signup": "node scripts/smoke-signup-flow.mjs",
+    "smoke:skip-path": "node scripts/smoke-skip-path.mjs",
+    "smoke:returning-vendor": "node scripts/smoke-returning-vendor.mjs",
+    "smoke:add-product": "node scripts/smoke-add-product.mjs",
+    "smoke:recovery": "node scripts/smoke-recovery.mjs",
+    "check:link-metadata": "node scripts/check-link-metadata.mjs",
+    "smoke:storefront": "node scripts/smoke-storefront-flow.mjs",
+    "smoke:share": "node scripts/smoke-share-flow.mjs",
+    "smoke:offers": "node scripts/smoke-offers-flow.mjs",
+    "smoke:cart": "node scripts/smoke-cart-flow.mjs",
+    "smoke:orders": "node scripts/smoke-orders-flow.mjs"
   },
   "dependencies": {
-    "next": "latest",
-    "react": "latest",
-    "react-dom": "latest"
+    "@supabase/supabase-js": "2.116.0",
+    "@tanstack/react-query": "5.103.2",
+    "lucide-react": "1.47.0",
+    "next": "16.3.5",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "4.3.3",
+    "@types/node": "24.13.6",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.3.5",
     "husky": "^8.0.0",
-    "lint-staged": "^15.0.0"
-  },
-  "lint-staged": {
-    "package.json": [
-      "node -e \"if(require('fs').existsSync('../package.json')) { console.error('❌ CRITICAL ERROR: package.json detected at root! Move it inside /frontend.'); process.exit(1); }\""
-    ],
-    "package-lock.json": [
-      "node -e \"if(require('fs').existsSync('../package-lock.json')) { console.error('❌ CRITICAL ERROR: package-lock.json detected at root! Move it inside /frontend.'); process.exit(1); }\""
-    ],
-    "shared/**/*": [
-      "node -e \"const fs = require('fs'); if(fs.existsSync('../shared') && fs.lstatSync('../shared').isDirectory() && fs.readdirSync('../shared').filter(f => f !== 'api-contract.ts').length > 0) { console.error('❌ LAW VIOLATION: The shared/ directory must contain ONLY the single file api-contract.ts.'); process.exit(1); }\""
-    ]
-  },
-  "**/*.{js,jsx,ts,tsx}": [
-  "eslint --fix",
-  "prettier --write"
-],
-
-    "engines": {
-    "node": "20.x"
+    "lint-staged": "17.5.1",
+    "prettier": "3.9.8",
+    "prettier-plugin-tailwindcss": "0.8.1",
+    "supabase": "2.117.0",
+    "tailwindcss": "4.3.3",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.70.1"
   }
 }

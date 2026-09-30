@@ -1,0 +1,11 @@
+.next
+node_modules
+package-lock.json
+.planning
+.claude
+.gsd
+docs
+product UI reference
+supabase
+src/lib/supabase/database.types.ts
+src/app/theme.css

@@ -23,3 +23,10 @@ out/
 # Operating System System Files
 .DS_Store
 Thumbs.db
+.planning/
+.husky/_
+.gsd/
+.claude/
+next-env.d.ts
+*.tsbuildinfo
+ui-reference/

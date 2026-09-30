@@ -1,0 +1,16 @@
+{
+  "package.json": [
+    "node -e \"if(require('fs').existsSync('../package.json')) { console.error('❌ CRITICAL ERROR: package.json detected at root! Move it inside /frontend.'); process.exit(1); }\""
+  ],
+  "package-lock.json": [
+    "node -e \"if(require('fs').existsSync('../package-lock.json')) { console.error('❌ CRITICAL ERROR: package-lock.json detected at root! Move it inside /frontend.'); process.exit(1); }\""
+  ],
+  "shared/**/*": [
+    "node -e \"const fs = require('fs'); if(fs.existsSync('../shared') && fs.lstatSync('../shared').isDirectory() && fs.readdirSync('../shared').filter(f => f !== 'api-contract.ts').length > 0) { console.error('❌ LAW VIOLATION: The shared/ directory must contain ONLY the single file api-contract.ts.'); process.exit(1); }\""
+  ],
+  "*.{ts,tsx,mjs}": [
+    "eslint --max-warnings=0 --no-warn-ignored --fix",
+    "prettier --write"
+  ],
+  "*.{css,json,md,yml,yaml}": ["prettier --write"]
+}
