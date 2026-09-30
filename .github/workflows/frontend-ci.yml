@@ -1,5 +1,4 @@
 name: Frontend CI
-
 on:
   pull_request:
     paths:
@@ -10,26 +9,26 @@ on:
 jobs:
   test-frontend:
     runs-on: ubuntu-latest
-
+    defaults:
+      run:
+        working-directory: frontend
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version-file: frontend/.nvmrc
-
-      - name: Install Dependencies
-        run: |
-          cd frontend
-          npm install || echo "Skipping until package.json script is ready"
-
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
       - name: Verify frontend/.env.example Template Exists
-        run: |
-          if [ ! -f frontend/.env.example ]; then
-            echo "❌ CRITICAL ERROR: Missing template file 'frontend/.env.example'!"
-            echo "Developers must commit this public structural layout before merging."
-            exit 1
-          fi
-          echo "✅ Success: frontend/.env.example is present."
+        run: test -f .env.example
+      - name: Install Dependencies
+        run: npm ci
+      - name: Run application verification
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
+        run: npm run verify
+      - name: Run database verification
+        run: npm run verify:db
