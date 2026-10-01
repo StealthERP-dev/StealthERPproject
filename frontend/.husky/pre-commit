@@ -1,52 +1,12 @@
 #!/usr/bin/env sh
 . "$(dirname "$0")/_/husky.sh"
 
-echo "🚧 Running StealthERP Architecture & Secret Guardrails..."
+set -eu
+cd "$(git rev-parse --show-toplevel)"
 
-# ----------------------------------------------------
-# Guardrail 1: Root Folder File Block
-# ----------------------------------------------------
-if [ -f "package.json" ] || [ -f "package-lock.json" ]; then
-    echo "❌ CRITICAL FAILURE: package files detected at the absolute repository root"
-    exit 1
-fi
+echo "Running repository guardrails..."
+./scripts/check-repository.sh
 
-# ----------------------------------------------------
-# Guardrail 2: Shared Contract Folder Block
-# ----------------------------------------------------
-if [ -d "shared/api-contract" ]; then
-    echo "❌ CRITICAL FAILURE: Multi-file contract directory 'shared/api-contract/' found."
-    exit 1
-fi
-
-# ----------------------------------------------------
-# Guardrail 3: Environment Sync Validation (.env vs .env.example)
-# ----------------------------------------------------
-if [ -f "frontend/.env" ]; then
-    ENV_KEYS=$(grep -v '^#' frontend/.env | grep -v '^$' | cut -d'=' -f1 | sort)
-    EXAMPLE_KEYS=$(grep -v '^#' frontend/.env.example | grep -v '^$' | cut -d'=' -f1 | sort)
-
-    MISSING_KEYS=$(echo "$ENV_KEYS" | while read -r key; do
-        if ! echo "$EXAMPLE_KEYS" | grep -q "^$key$"; then
-            echo "  ⚠️  $key"
-        fi
-    done)
-
-    if [ -n "$MISSING_KEYS" ]; then
-        echo "========================================================================="
-        echo "❌ COMMIT BLOCKED: Missing Environment Variable Templates!"
-        echo "========================================================================="
-        echo "You added new variables to frontend/.env but forgot to add them to:"
-        echo "👉 frontend/.env.example"
-        echo ""
-        echo "Please append these missing keys as blank templates before committing:"
-        echo "$MISSING_KEYS"
-        echo "========================================================================="
-        exit 1
-    fi
-fi
-
-# ----------------------------------------------------
-# Existing Staged Linter Configuration
-# ----------------------------------------------------
-cd frontend && npx lint-staged
+echo "Running staged-file formatters..."
+cd frontend
+npx --no-install lint-staged
