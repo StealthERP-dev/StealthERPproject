@@ -1,14 +1,22 @@
 # StealthERP
 
 StealthERP is organized as independent `frontend` and `backend` Node.js
-workspaces with a single shared API contract.
+workspaces with a shared API contract.
 
 ## Repository layout
 
 - `frontend/` — Next.js client workspace.
 - `backend/` — server workspace.
-- `shared/api-contract.ts` — the cross-workspace API contract.
+- `shared/api-contract.ts` — the required regular file containing the
+	cross-workspace API contract.
+- `shared/api-contract/` — an optional directory layout for contract modules.
+	When present, it must contain the `entities/`, `dto/`, and `rpc/` directories.
+	It may also contain the optional regular files `auth.ts`, `enums.ts`,
+	`primitives.ts`, and `index.ts`. No other entries are allowed at this level.
 - `scripts/check-repository.sh` — architecture and secret-file guardrails.
+
+The `shared/` directory may contain only `api-contract.ts` and the optional
+`api-contract/` directory. Symlinks are not allowed anywhere under `shared/`.
 
 ## Local validation
 

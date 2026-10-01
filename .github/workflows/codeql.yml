@@ -3,7 +3,7 @@ name: CodeQL
 on:
   pull_request:
   push:
-    branches: [main, staging, work]
+    branches: [main, dev]
   schedule:
     - cron: "17 4 * * 1"
 
@@ -23,9 +23,52 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - id: source
+        name: Detect JavaScript and TypeScript source
+        shell: bash
+        run: |
+          has_source=false
+          while IFS= read -r -d '' file; do
+            if awk '
+              {
+                line = $0
+                while (1) {
+                  sub(/^[[:space:]]+/, "", line)
+                  if (in_block_comment) {
+                    closing = index(line, "*/")
+                    if (!closing) break
+                    line = substr(line, closing + 2)
+                    in_block_comment = 0
+                    continue
+                  }
+                  if (line == "" || substr(line, 1, 2) == "//") break
+                  if (substr(line, 1, 2) == "/*") {
+                    in_block_comment = 1
+                    line = substr(line, 3)
+                    continue
+                  }
+                  found = 1
+                  exit
+                }
+              }
+              END { exit !found }
+            ' "$file"; then
+              has_source=true
+              break
+            fi
+          done < <(git ls-files -z -- '*.js' '*.jsx' '*.mjs' '*.cjs' '*.ts' '*.tsx' '*.mts' '*.cts')
+
+          echo "has_source=$has_source" >> "$GITHUB_OUTPUT"
+          if [[ "$has_source" == true ]]; then
+            echo "JavaScript/TypeScript source found; CodeQL analysis will run." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "CodeQL skipped: no non-comment JavaScript/TypeScript source is present. Analysis will run automatically when real source is added." >> "$GITHUB_STEP_SUMMARY"
+          fi
       - name: Initialize CodeQL
+        if: steps.source.outputs.has_source == 'true'
         uses: github/codeql-action/init@1190a975f95ce23525efb6a3fc21ea29567c1b52 # v3.38.2
         with:
           languages: javascript-typescript
       - name: Analyze
+        if: steps.source.outputs.has_source == 'true'
         uses: github/codeql-action/analyze@1190a975f95ce23525efb6a3fc21ea29567c1b52 # v3.38.2

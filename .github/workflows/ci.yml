@@ -3,7 +3,7 @@ name: Continuous Integration
 on:
   pull_request:
   push:
-    branches: [main, staging, work]
+    branches: [main, dev]
   workflow_dispatch:
 
 permissions:

@@ -1,6 +1,6 @@
 # Contributing
 
-1. Create a short-lived branch from the current staging branch.
+1. Create a short-lived branch from the current `dev` branch.
 2. Keep secrets in local `.env` files and mirror key names with blank values in
    the relevant `.env.example` file.
 3. Run `./scripts/check-repository.sh` and each changed workspace's
