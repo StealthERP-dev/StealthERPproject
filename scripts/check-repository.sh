@@ -9,9 +9,34 @@ fail() {
   exit 1
 }
 
-[[ ! -e package.json && ! -e package-lock.json ]] || fail "Node package files must remain in their workspace directories."
-[[ -f backend/.env.example ]] || fail "backend/.env.example is required."
+[[ -f package.json && -f package-lock.json ]] || fail "Root package files are required for reproducible Supabase CLI installation."
 [[ -f frontend/.env.example ]] || fail "frontend/.env.example is required."
+[[ ! -e backend ]] || fail "A standalone backend workspace is not part of the approved architecture."
+
+for path in supabase supabase/migrations supabase/tests supabase/functions; do
+  [[ -d "$path" && ! -L "$path" ]] || fail "$path must be a directory, not a symbolic link."
+done
+
+for path in supabase/config.toml supabase/seed.sql supabase/.gitignore; do
+  [[ -f "$path" && ! -L "$path" ]] || fail "$path must be a regular file, not a symbolic link."
+done
+
+supabase_symlink="$(find supabase -type l -print -quit)"
+[[ -z "$supabase_symlink" ]] || fail "Symbolic links are not allowed under supabase/: ${supabase_symlink}."
+
+node - <<'NODE'
+const packageJson = require("./package.json");
+if (packageJson.private !== true) throw new Error("Root tooling package must be private");
+if (packageJson.devDependencies?.supabase !== "2.119.0") {
+  throw new Error("Supabase CLI must remain pinned to version 2.119.0");
+}
+if (packageJson.scripts?.supabase !== "supabase") {
+  throw new Error("The reproducible Supabase CLI script is required");
+}
+NODE
+
+grep -Eq '^project_id = "stealth-erp-local"$' supabase/config.toml || \
+  fail "supabase/config.toml must use the non-production local project identifier."
 
 [[ -d shared && ! -L shared ]] || fail "shared/ must be a directory."
 shared_symlink="$(find shared -type l -print -quit)"
@@ -60,7 +85,7 @@ if git ls-files | grep -E '(^|/)\.env($|\.)' | grep -vE '(^|/)\.env\.example$' >
   fail "A non-example environment file is tracked by Git."
 fi
 
-for workspace in backend frontend; do
+for workspace in . frontend; do
   node -e 'const p=require(`./${process.argv[1]}/package.json`); if (p.private !== true) throw new Error(`${process.argv[1]} must be private`)' "$workspace"
   [[ -f "$workspace/package-lock.json" ]] || fail "$workspace/package-lock.json is required for reproducible installs."
 
