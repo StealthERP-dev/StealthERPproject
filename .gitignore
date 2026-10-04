@@ -12,6 +12,7 @@ node_modules/
 jspm_packages/
 .npm
 .eslintcache
+*.tsbuildinfo
 
 # Production Build Artifacts 
 dist/

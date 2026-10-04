@@ -1,0 +1,3 @@
+-- Intentionally empty.
+-- Add only synthetic, non-personal development data when a schema exists.
+-- Production data must never be copied into local, preview, or development environments.

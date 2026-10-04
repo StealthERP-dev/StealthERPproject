@@ -9,9 +9,54 @@ fail() {
   exit 1
 }
 
-[[ ! -e package.json && ! -e package-lock.json ]] || fail "Node package files must remain in their workspace directories."
-[[ -f backend/.env.example ]] || fail "backend/.env.example is required."
+[[ -f package.json && -f package-lock.json ]] || fail "Root package files are required for the npm workspace."
+[[ -f .nvmrc ]] || fail ".nvmrc is required."
 [[ -f frontend/.env.example ]] || fail "frontend/.env.example is required."
+[[ ! -e frontend/package-lock.json ]] || fail "Workspaces must use the root package-lock.json."
+[[ ! -e backend ]] || fail "A standalone backend workspace is not part of the approved architecture."
+
+for path in supabase supabase/migrations supabase/tests supabase/functions; do
+  [[ -d "$path" && ! -L "$path" ]] || fail "$path must be a directory, not a symbolic link."
+done
+
+for path in supabase/config.toml supabase/seed.sql supabase/.gitignore; do
+  [[ -f "$path" && ! -L "$path" ]] || fail "$path must be a regular file, not a symbolic link."
+done
+
+supabase_symlink="$(find supabase -type l -print -quit)"
+[[ -z "$supabase_symlink" ]] || fail "Symbolic links are not allowed under supabase/: ${supabase_symlink}."
+
+node - <<'NODE'
+const packageJson = require("./package.json");
+if (packageJson.private !== true) throw new Error("Root package must be private");
+if (packageJson.packageManager !== "npm@10.8.2") {
+  throw new Error("The npm package-manager version must remain pinned to 10.8.2");
+}
+if (JSON.stringify(packageJson.workspaces) !== JSON.stringify(["frontend"])) {
+  throw new Error("The root workspace list must contain only frontend");
+}
+if (packageJson.devDependencies?.supabase !== "2.119.0") {
+  throw new Error("Supabase CLI must remain pinned to version 2.119.0");
+}
+const requiredScripts = [
+  "build",
+  "format:check",
+  "lint",
+  "typecheck",
+  "test",
+  "validate:repo",
+  "supabase:start",
+  "supabase:test:db",
+];
+for (const script of requiredScripts) {
+  if (!packageJson.scripts?.[script]) throw new Error(`Root script ${script} is required`);
+}
+NODE
+
+[[ "$(<.nvmrc)" == "20" ]] || fail ".nvmrc must match the Node.js 20 version used by CI."
+
+grep -Eq '^project_id = "stealth-erp-local"$' supabase/config.toml || \
+  fail "supabase/config.toml must use the non-production local project identifier."
 
 [[ -d shared && ! -L shared ]] || fail "shared/ must be a directory."
 shared_symlink="$(find shared -type l -print -quit)"
@@ -60,7 +105,7 @@ if git ls-files | grep -E '(^|/)\.env($|\.)' | grep -vE '(^|/)\.env\.example$' >
   fail "A non-example environment file is tracked by Git."
 fi
 
-for workspace in backend frontend; do
+for workspace in .; do
   node -e 'const p=require(`./${process.argv[1]}/package.json`); if (p.private !== true) throw new Error(`${process.argv[1]} must be private`)' "$workspace"
   [[ -f "$workspace/package-lock.json" ]] || fail "$workspace/package-lock.json is required for reproducible installs."
 
@@ -71,5 +116,12 @@ for workspace in backend frontend; do
     [[ -z "$missing_keys" ]] || fail "$workspace/.env.example is missing keys from the local .env: ${missing_keys//$'\n'/, }."
   fi
 done
+
+if [[ -f frontend/.env ]]; then
+  missing_keys="$(comm -23 \
+    <(awk -F= '/^[A-Za-z_][A-Za-z0-9_]*=/{print $1}' frontend/.env | sort -u) \
+    <(awk -F= '/^[A-Za-z_][A-Za-z0-9_]*=/{print $1}' frontend/.env.example | sort -u))"
+  [[ -z "$missing_keys" ]] || fail "frontend/.env.example is missing keys from frontend/.env: ${missing_keys//$'\n'/, }."
+fi
 
 echo "Repository guardrails passed."
