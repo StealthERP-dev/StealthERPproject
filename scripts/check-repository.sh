@@ -9,10 +9,8 @@ fail() {
   exit 1
 }
 
-[[ -f package.json && -f package-lock.json ]] || fail "Root package files are required for the npm workspace."
-[[ -f .nvmrc ]] || fail ".nvmrc is required."
+[[ -f package.json && -f package-lock.json ]] || fail "Root package files are required for reproducible Supabase CLI installation."
 [[ -f frontend/.env.example ]] || fail "frontend/.env.example is required."
-[[ ! -e frontend/package-lock.json ]] || fail "Workspaces must use the root package-lock.json."
 [[ ! -e backend ]] || fail "A standalone backend workspace is not part of the approved architecture."
 
 for path in supabase supabase/migrations supabase/tests supabase/functions; do
@@ -28,32 +26,14 @@ supabase_symlink="$(find supabase -type l -print -quit)"
 
 node - <<'NODE'
 const packageJson = require("./package.json");
-if (packageJson.private !== true) throw new Error("Root package must be private");
-if (packageJson.packageManager !== "npm@10.8.2") {
-  throw new Error("The npm package-manager version must remain pinned to 10.8.2");
-}
-if (JSON.stringify(packageJson.workspaces) !== JSON.stringify(["frontend"])) {
-  throw new Error("The root workspace list must contain only frontend");
-}
+if (packageJson.private !== true) throw new Error("Root tooling package must be private");
 if (packageJson.devDependencies?.supabase !== "2.119.0") {
   throw new Error("Supabase CLI must remain pinned to version 2.119.0");
 }
-const requiredScripts = [
-  "build",
-  "format:check",
-  "lint",
-  "typecheck",
-  "test",
-  "validate:repo",
-  "supabase:start",
-  "supabase:test:db",
-];
-for (const script of requiredScripts) {
-  if (!packageJson.scripts?.[script]) throw new Error(`Root script ${script} is required`);
+if (packageJson.scripts?.supabase !== "supabase") {
+  throw new Error("The reproducible Supabase CLI script is required");
 }
 NODE
-
-[[ "$(<.nvmrc)" == "20" ]] || fail ".nvmrc must match the Node.js 20 version used by CI."
 
 grep -Eq '^project_id = "stealth-erp-local"$' supabase/config.toml || \
   fail "supabase/config.toml must use the non-production local project identifier."
@@ -105,7 +85,7 @@ if git ls-files | grep -E '(^|/)\.env($|\.)' | grep -vE '(^|/)\.env\.example$' >
   fail "A non-example environment file is tracked by Git."
 fi
 
-for workspace in .; do
+for workspace in . frontend; do
   node -e 'const p=require(`./${process.argv[1]}/package.json`); if (p.private !== true) throw new Error(`${process.argv[1]} must be private`)' "$workspace"
   [[ -f "$workspace/package-lock.json" ]] || fail "$workspace/package-lock.json is required for reproducible installs."
 

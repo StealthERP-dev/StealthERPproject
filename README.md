@@ -16,9 +16,8 @@ Functions where they are needed. There is no standalone Node.js backend.
   It may also contain the optional regular files `auth.ts`, `enums.ts`,
   `primitives.ts`, and `index.ts`. No other entries are allowed at this level.
 - `scripts/check-repository.sh` — architecture and secret-file guardrails.
-- `package.json` and `package-lock.json` — the private npm workspace root and
-  its single dependency lockfile. The root package also pins the Supabase CLI;
-  it does not define an application backend.
+- `package.json` and `package-lock.json` — repository tooling that pins the
+  Supabase CLI; they do not define an application backend.
 
 The `shared/` directory may contain only `api-contract.ts` and the optional
 `api-contract/` directory. Symlinks are not allowed anywhere under `shared/`.
@@ -38,28 +37,22 @@ for the rationale and constraints.
 
 ## Local validation
 
-Use Node.js 20, as recorded in `.nvmrc`. The root package pins npm and the
-Supabase CLI, while npm workspaces install the root tooling and `frontend/`
-dependencies from one lockfile:
+Use an active Node.js LTS release (Node.js 20 or newer). The root lockfile pins
+the Supabase CLI so every developer and CI invokes the same version. Install
+tooling and frontend dependencies deterministically, then run the checks used
+by CI:
 
 ```sh
-nvm use
 npm ci
-npm run validate:repo
-npm run format:check
-npm run lint
-npm run typecheck
-npm test
-npm run build
+npm run supabase -- --version
+./scripts/check-repository.sh
+(cd frontend && npm ci && npm run format:check)
 ```
 
-Start the local Supabase stack with `npm run supabase:start` and run its database
-tests with `npm run supabase:test:db`. Both commands require a local Docker
-runtime. Arbitrary CLI commands remain available through
-`npm run supabase -- <command>`. Local Supabase runtime files and local
-environment files are ignored by Git. `supabase/seed.sql` must contain only
-synthetic, non-personal development data; production data must never be used as
-seed data.
+Run other CLI commands through the pinned script, for example
+`npm run supabase -- start`. Local Supabase runtime files and local environment
+files are ignored by Git. `supabase/seed.sql` must contain only synthetic,
+non-personal development data; production data must never be used as seed data.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the pull-request workflow and
 [SECURITY.md](SECURITY.md) for private vulnerability reporting.
