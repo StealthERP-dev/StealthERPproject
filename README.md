@@ -7,8 +7,8 @@ Functions where they are needed. There is no standalone Node.js backend.
 ## Repository layout
 
 - `frontend/` — the Next.js application deployed by Vercel.
-- `supabase/` — the location for version-controlled Supabase project
-  configuration and migrations as database and backend capabilities are added.
+- `supabase/` — the Supabase project configuration, migrations, database tests,
+  Edge Functions, and safe local seed file.
 - `shared/api-contract.ts` — the required regular file for shared contract
   definitions.
 - `shared/api-contract/` — an optional directory layout for contract modules.
@@ -16,6 +16,8 @@ Functions where they are needed. There is no standalone Node.js backend.
   It may also contain the optional regular files `auth.ts`, `enums.ts`,
   `primitives.ts`, and `index.ts`. No other entries are allowed at this level.
 - `scripts/check-repository.sh` — architecture and secret-file guardrails.
+- `package.json` and `package-lock.json` — repository tooling that pins the
+  Supabase CLI; they do not define an application backend.
 
 The `shared/` directory may contain only `api-contract.ts` and the optional
 `api-contract/` directory. Symlinks are not allowed anywhere under `shared/`.
@@ -35,13 +37,22 @@ for the rationale and constraints.
 
 ## Local validation
 
-Use an active Node.js LTS release (Node.js 20 or newer). Install frontend
-dependencies deterministically and run the same checks used by CI:
+Use an active Node.js LTS release (Node.js 20 or newer). The root lockfile pins
+the Supabase CLI so every developer and CI invokes the same version. Install
+tooling and frontend dependencies deterministically, then run the checks used
+by CI:
 
 ```sh
+npm ci
+npm run supabase -- --version
 ./scripts/check-repository.sh
 (cd frontend && npm ci && npm run format:check)
 ```
+
+Run other CLI commands through the pinned script, for example
+`npm run supabase -- start`. Local Supabase runtime files and local environment
+files are ignored by Git. `supabase/seed.sql` must contain only synthetic,
+non-personal development data; production data must never be used as seed data.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the pull-request workflow and
 [SECURITY.md](SECURITY.md) for private vulnerability reporting.

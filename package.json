@@ -1,0 +1,14 @@
+{
+  "name": "stealth-erp-tooling",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "supabase": "supabase"
+  },
+  "engines": {
+    "node": ">=20 <25"
+  },
+  "devDependencies": {
+    "supabase": "2.119.0"
+  }
+}
