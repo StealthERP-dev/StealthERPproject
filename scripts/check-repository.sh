@@ -10,8 +10,8 @@ fail() {
 }
 
 [[ ! -e package.json && ! -e package-lock.json ]] || fail "Node package files must remain in their workspace directories."
-[[ -f backend/.env.example ]] || fail "backend/.env.example is required."
 [[ -f frontend/.env.example ]] || fail "frontend/.env.example is required."
+[[ ! -e backend ]] || fail "A standalone backend workspace is not part of the approved architecture."
 
 [[ -d shared && ! -L shared ]] || fail "shared/ must be a directory."
 shared_symlink="$(find shared -type l -print -quit)"
@@ -60,7 +60,7 @@ if git ls-files | grep -E '(^|/)\.env($|\.)' | grep -vE '(^|/)\.env\.example$' >
   fail "A non-example environment file is tracked by Git."
 fi
 
-for workspace in backend frontend; do
+for workspace in frontend; do
   node -e 'const p=require(`./${process.argv[1]}/package.json`); if (p.private !== true) throw new Error(`${process.argv[1]} must be private`)' "$workspace"
   [[ -f "$workspace/package-lock.json" ]] || fail "$workspace/package-lock.json is required for reproducible installs."
 
